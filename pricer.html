@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricer — Julien Guebourg</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#0A0A08;--surface:#111108;--surface2:#1A1A14;--border:#2A2A1E;--text:#E8E4DC;--muted:#8A8478;--accent:#C9A84C;--accent2:#B8965A;--red:#C0392B;--gold:#E8D5A3;--white:#F5F0E8;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(201,168,76,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(201,168,76,0.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 3rem;height:60px;background:rgba(10,10,8,0.88);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  .nav-logo{font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--accent);letter-spacing:0.1em;text-decoration:none;}
+  .nav-links{display:flex;gap:2rem;list-style:none;}
+  .nav-links a{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);text-decoration:none;letter-spacing:0.08em;transition:color 0.2s;}
+  .nav-links a:hover,.nav-links a.active{color:var(--white);}
+
+  .page-hero{position:relative;z-index:1;padding:8rem 3rem 4rem;max-width:1100px;margin:0 auto;border-bottom:1px solid var(--border);}
+  .page-tag{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--accent);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1rem;}
+  .page-hero h1{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4rem);color:var(--white);line-height:1.05;margin-bottom:1rem;}
+  .page-hero p{color:var(--muted);font-size:0.95rem;max-width:600px;}
+
+  /* ── PRICER LAYOUT ── */
+  .pricer-layout{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:3rem;display:grid;grid-template-columns:340px 1fr;gap:2rem;align-items:start;}
+
+  /* ── PARAMS PANEL ── */
+  .params-panel{background:var(--surface);border:1px solid var(--border);position:sticky;top:80px;}
+  .panel-header{padding:1.2rem 1.5rem;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--accent);letter-spacing:0.15em;text-transform:uppercase;}
+
+  .param-group{padding:1rem 1.5rem;border-bottom:1px solid var(--border);}
+  .param-group-title{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.8rem;}
+
+  .param-item{margin-bottom:1rem;}
+  .param-item:last-child{margin-bottom:0;}
+  .param-item label{display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text);margin-bottom:0.4rem;}
+  .param-item label span{color:var(--accent);font-weight:500;}
+
+  input[type=range]{width:100%;accent-color:var(--accent);height:4px;cursor:pointer;}
+  select,input[type=number]{
+    width:100%;background:var(--bg);border:1px solid var(--border);
+    color:var(--text);font-family:'DM Mono',monospace;font-size:0.78rem;
+    padding:0.5rem 0.8rem;outline:none;cursor:pointer;
+    transition:border-color 0.2s;
+  }
+  select:focus,input[type=number]:focus{border-color:var(--accent);}
+
+  .toggle-row{display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--text);margin-bottom:0.6rem;}
+  .toggle{position:relative;width:38px;height:20px;cursor:pointer;}
+  .toggle input{opacity:0;width:0;height:0;}
+  .toggle-slider{position:absolute;inset:0;background:var(--border);border-radius:20px;transition:0.3s;}
+  .toggle-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;bottom:3px;background:var(--muted);border-radius:50%;transition:0.3s;}
+  .toggle input:checked+.toggle-slider{background:var(--accent);}
+  .toggle input:checked+.toggle-slider::before{transform:translateX(18px);background:#fff;}
+
+  .run-btn{
+    width:100%;margin:1.5rem 0 0;
+    background:var(--accent);color:#fff;
+    font-family:'DM Mono',monospace;font-size:0.8rem;
+    letter-spacing:0.1em;text-transform:uppercase;
+    padding:1rem;border:none;cursor:pointer;
+    transition:background 0.2s,transform 0.1s;
+  }
+  .run-btn:hover{background:#2563EB;}
+  .run-btn:active{transform:scale(0.98);}
+  .run-btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
+
+  /* ── RESULTS PANEL ── */
+  .results-panel{}
+  .results-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5px;background:var(--border);border:1px solid var(--border);margin-bottom:2rem;}
+  .result-kpi{background:var(--surface);padding:1.3rem 1.5rem;}
+  .kpi-val{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--white);display:block;}
+  .kpi-val.green{color:var(--accent2);}
+  .kpi-val.red  {color:var(--red);}
+  .kpi-val.blue {color:var(--accent);}
+  .kpi-val.gold {color:var(--gold);}
+  .kpi-lbl{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:0.2rem;}
+
+  .chart-box{background:var(--surface);border:1px solid var(--border);padding:1.5rem;margin-bottom:1.5rem;}
+  .chart-title{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;}
+  .chart-box canvas{max-height:220px;}
+
+  .log-box{background:var(--surface);border:1px solid var(--border);padding:1.2rem 1.5rem;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);line-height:1.8;min-height:80px;}
+  .log-box .ok {color:var(--accent2);}
+  .log-box .info{color:var(--accent);}
+  .log-box .warn{color:var(--gold);}
+
+  .placeholder{display:flex;align-items:center;justify-content:center;height:300px;color:var(--muted);font-family:'DM Mono',monospace;font-size:0.8rem;letter-spacing:0.1em;border:1px dashed var(--border);}
+
+  footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);}
+
+  @media(max-width:900px){
+    .pricer-layout{grid-template-columns:1fr;}
+    .params-panel{position:static;}
+    nav{padding:0 1.5rem;}
+    .page-hero,.pricer-layout{padding-left:1.5rem;padding-right:1.5rem;}
+    .results-grid{grid-template-columns:repeat(2,1fr);}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">JG // STRUCTURED PRODUCTS</a>
+  <ul class="nav-links">
+    <li><a href="phoenix.html">PHOENIX</a></li>
+    <li><a href="athena.html">ATHENA</a></li>
+    <li><a href="pricer.html" class="active">PRICER</a></li>
+    <li><a href="backtest.html">BACKTEST</a></li>
+    <li><a href="pricer-options.html">OPTIONS</a></li>
+  </ul>
+</nav>
+
+<div class="page-hero">
+  <p class="page-tag">// Monte Carlo · Temps réel</p>
+  <h1>Pricer<br>Interactif</h1>
+  <p>Paramétrez votre Phoenix ou Athena, lancez la simulation Monte Carlo directement dans le navigateur et analysez les résultats instantanément.</p>
+</div>
+
+<div class="pricer-layout">
+
+  <!-- ── PARAMS ── -->
+  <div class="params-panel">
+    <div class="panel-header">// Paramètres du produit</div>
+
+    <div class="param-group">
+      <div class="param-group-title">Modèle & Simulation</div>
+      <div class="param-item">
+        <label>Nombre de simulations <span id="lbl-nsim">10 000</span></label>
+        <input type="range" id="inp-nsim" min="1000" max="50000" step="1000" value="10000" oninput="document.getElementById('lbl-nsim').textContent=Number(this.value).toLocaleString('fr')">
+      </div>
+      <div class="param-item">
+        <label>Volatilité annuelle (σ) <span id="lbl-vol">17.8%</span></label>
+        <input type="range" id="inp-vol" min="5" max="60" step="0.5" value="17.8" oninput="document.getElementById('lbl-vol').textContent=this.value+'%'">
+      </div>
+      <div class="param-item">
+        <label>Taux sans risque (r) <span id="lbl-r">3.5%</span></label>
+        <input type="range" id="inp-r" min="0" max="8" step="0.1" value="3.5" oninput="document.getElementById('lbl-r').textContent=this.value+'%'">
+      </div>
+      <div class="param-item">
+        <label>Horizon (années) <span id="lbl-T">5</span></label>
+        <input type="range" id="inp-T" min="1" max="10" step="1" value="5" oninput="document.getElementById('lbl-T').textContent=this.value">
+      </div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-group-title">Type de produit</div>
+      <div class="param-item">
+        <label>Produit</label>
+        <select id="inp-type">
+          <option value="phoenix">Phoenix</option>
+          <option value="athena">Athena</option>
+        </select>
+      </div>
+      <div class="param-item">
+        <label>Observations</label>
+        <select id="inp-obs">
+          <option value="quarterly">Trimestrielles (×4/an)</option>
+          <option value="semiannual">Semestrielles (×2/an)</option>
+          <option value="annual">Annuelles (×1/an)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-group-title">Barrières</div>
+      <div class="param-item">
+        <label>Autocall initial <span id="lbl-ac">100%</span></label>
+        <input type="range" id="inp-ac" min="70" max="130" step="1" value="100" oninput="document.getElementById('lbl-ac').textContent=this.value+'%'; if(parseInt(document.getElementById('inp-acf').value)>parseInt(this.value)){document.getElementById('inp-acf').value=this.value;document.getElementById('lbl-acf').textContent=this.value+'%';}">
+      </div>
+      <div class="param-item">
+        <label>Autocall final (dégressif) <span id="lbl-acf">80%</span></label>
+        <input type="range" id="inp-acf" min="60" max="130" step="1" value="80" oninput="document.getElementById('lbl-acf').textContent=this.value+'%'">
+      </div>
+      <div class="param-item" id="row-coupon-bar">
+        <label>Barrière coupon <span id="lbl-cb">70%</span></label>
+        <input type="range" id="inp-cb" min="40" max="100" step="1" value="70" oninput="document.getElementById('lbl-cb').textContent=this.value+'%'">
+      </div>
+      <div class="param-item">
+        <label>Barrière capital (PDI) <span id="lbl-kb">60%</span></label>
+        <input type="range" id="inp-kb" min="30" max="90" step="1" value="60" oninput="document.getElementById('lbl-kb').textContent=this.value+'%'">
+      </div>
+    </div>
+
+    <div class="param-group">
+      <div class="param-group-title">Coupon & Options</div>
+      <div class="param-item">
+        <label>Coupon annuel <span id="lbl-cpn">7%</span></label>
+        <input type="range" id="inp-cpn" min="1" max="30" step="0.5" value="7" oninput="document.getElementById('lbl-cpn').textContent=this.value+'%'">
+      </div>
+      <div class="toggle-row">
+        <span>Effet mémoire</span>
+        <label class="toggle"><input type="checkbox" id="inp-memory" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <span>Protection capital totale (ZCB)</span>
+        <label class="toggle"><input type="checkbox" id="inp-zcb" checked><span class="toggle-slider"></span></label>
+      </div>
+      <div class="param-item" id="row-partial" style="display:none;">
+        <label>Protection partielle <span id="lbl-part">85%</span></label>
+        <input type="range" id="inp-part" min="50" max="100" step="1" value="85" oninput="document.getElementById('lbl-part').textContent=this.value+'%'">
+      </div>
+    </div>
+
+    <div style="padding:0 1.5rem 1.5rem;">
+      <button class="run-btn" id="run-btn" onclick="runSimulation()">▶ LANCER LA SIMULATION</button>
+    </div>
+  </div>
+
+  <!-- ── RESULTS ── -->
+  <div class="results-panel">
+    <div id="placeholder" class="placeholder">// Configurez les paramètres et lancez la simulation</div>
+
+    <div id="results-content" style="display:none;">
+      <div class="results-grid">
+        <div class="result-kpi"><span class="kpi-val blue" id="res-recall">—</span><div class="kpi-lbl">P(rappel anticipé)</div></div>
+        <div class="result-kpi"><span class="kpi-val" id="res-life">—</span><div class="kpi-lbl">Durée vie moyenne</div></div>
+        <div class="result-kpi"><span class="kpi-val" id="res-coupon">—</span><div class="kpi-lbl">Coupon total moyen</div></div>
+        <div class="result-kpi"><span class="kpi-val" id="res-ret">—</span><div class="kpi-lbl">Rendement moyen</div></div>
+        <div class="result-kpi"><span class="kpi-val" id="res-loss">—</span><div class="kpi-lbl">P(perte)</div></div>
+        <div class="result-kpi"><span class="kpi-val" id="res-loss10">—</span><div class="kpi-lbl">P(perte > 10%)</div></div>
+      </div>
+
+      <div class="chart-box">
+        <div class="chart-title">// Distribution des rendements totaux</div>
+        <canvas id="chart-dist"></canvas>
+      </div>
+
+      <div class="chart-box">
+        <div class="chart-title">// Probabilité de rappel par date d'observation</div>
+        <canvas id="chart-recall"></canvas>
+      </div>
+
+      <div class="log-box" id="log-box"></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>© 2025 Julien Guebourg</span>
+  <span>Modèle Black-Scholes — À titre illustratif uniquement</span>
+  <a href="index.html" style="color:var(--muted);text-decoration:none;">← Accueil</a>
+</footer>
+
+<script>
+// ── Toggle ZCB / partial ──────────────────────────────────────────────────
+document.getElementById('inp-zcb').addEventListener('change', function() {
+  document.getElementById('row-partial').style.display = this.checked ? 'none' : 'block';
+});
+document.getElementById('inp-type').addEventListener('change', function() {
+  const isPhoenix = this.value === 'phoenix';
+  document.getElementById('row-coupon-bar').style.display = isPhoenix ? 'block' : 'none';
+});
+
+// ── Charts ────────────────────────────────────────────────────────────────
+let chartDist = null, chartRecall = null;
+
+function destroyCharts() {
+  if (chartDist)   { chartDist.destroy();   chartDist   = null; }
+  if (chartRecall) { chartRecall.destroy(); chartRecall = null; }
+}
+
+// ── MONTE CARLO ENGINE ───────────────────────────────────────────────────
+function randn() {
+  // Box-Muller
+  let u = 0, v = 0;
+  while (u === 0) u = Math.random();
+  while (v === 0) v = Math.random();
+  return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+}
+
+function runSimulation() {
+  const btn = document.getElementById('run-btn');
+  btn.disabled = true;
+  btn.textContent = '⏳ SIMULATION EN COURS...';
+
+  // Small delay to allow UI to update
+  setTimeout(() => {
+    try {
+      _run();
+    } finally {
+      btn.disabled = false;
+      btn.textContent = '▶ LANCER LA SIMULATION';
+    }
+  }, 50);
+}
+
+function _run() {
+  // ── Read params ──
+  const N      = parseInt(document.getElementById('inp-nsim').value);
+  const sigma  = parseFloat(document.getElementById('inp-vol').value) / 100;
+  const r      = parseFloat(document.getElementById('inp-r').value) / 100;
+  const T      = parseInt(document.getElementById('inp-T').value);
+  const type   = document.getElementById('inp-type').value;
+  const obsFrq = document.getElementById('inp-obs').value;
+  const acInit = parseFloat(document.getElementById('inp-ac').value) / 100;
+  const acFin  = parseFloat(document.getElementById('inp-acf').value) / 100;
+  const cb     = parseFloat(document.getElementById('inp-cb').value) / 100;
+  const kb     = parseFloat(document.getElementById('inp-kb').value) / 100;
+  const cpnPA  = parseFloat(document.getElementById('inp-cpn').value) / 100;
+  const memory = document.getElementById('inp-memory').checked;
+  const zcb    = document.getElementById('inp-zcb').checked;
+  const partK  = zcb ? 1.0 : parseFloat(document.getElementById('inp-part').value) / 100;
+
+  const SPY    = 52; // pas hebdomadaires
+  const nStep  = T * SPY;
+  const dt     = 1.0 / SPY;
+  const drift  = (r - 0.5 * sigma * sigma) * dt;
+  const vol_dt = sigma * Math.sqrt(dt);
+  const isPhoenix = (type === 'phoenix');
+
+  // ── Dates d'observation ──
+  let obsMult;
+  if (obsFrq === 'quarterly')    obsMult = 4;
+  else if (obsFrq === 'semiannual') obsMult = 2;
+  else obsMult = 1;
+  const nObs  = T * obsMult;
+  const dtObs = T / nObs; // durée entre deux observations en années
+
+  // Index des pas correspondant à chaque date d'observation
+  const obsIdx = [];
+  for (let i = 1; i <= nObs; i++) obsIdx.push(Math.round(i * SPY / obsMult));
+
+  // Dates en années de chaque observation (pour calcul durée de vie)
+  const tObs = [];
+  for (let i = 1; i <= nObs; i++) tObs.push(i / obsMult);
+
+  // Barrières autocall : obs 0 = acInit, obs nObs-1 = acFin
+  const acBars = [];
+  for (let i = 0; i < nObs; i++) {
+    acBars.push(nObs > 1 ? acInit + (acFin - acInit) * i / (nObs - 1) : acInit);
+  }
+
+  // ── Simulation ──
+  const recalledAt  = new Int32Array(N).fill(-1);
+  const totalCoupon = new Float64Array(N);
+  const capitalRet  = new Float64Array(N);
+  const active      = new Uint8Array(N).fill(1);
+  const memCount    = new Float64Array(N); // coupons en mémoire (Phoenix mémoire)
+
+  for (let sim = 0; sim < N; sim++) {
+    let S = 1.0;
+    let obsPtr = 0;
+
+    for (let t = 1; t <= nStep; t++) {
+      S *= Math.exp(drift + vol_dt * randn());
+
+      if (obsPtr < nObs && t === obsIdx[obsPtr]) {
+        const perf = S; // performance normalisée (S0 = 1)
+
+        if (active[sim]) {
+          // ── Phoenix : coupon conditionnel AVANT test autocall ──
+          if (isPhoenix) {
+            if (memory) {
+              memCount[sim]++;
+              if (perf >= cb) {
+                totalCoupon[sim] += memCount[sim] * cpnPA * dtObs;
+                memCount[sim] = 0;
+              }
+            } else {
+              if (perf >= cb) totalCoupon[sim] += cpnPA * dtObs;
+            }
+          }
+          // Athena : pas de coupon intermédiaire
+
+          // ── Test autocall ──
+          if (perf >= acBars[obsPtr]) {
+            recalledAt[sim] = obsPtr;
+            capitalRet[sim] = partK;
+            // Athena : coupons capitalisés depuis le début
+            if (!isPhoenix) totalCoupon[sim] = (obsPtr + 1) * cpnPA * dtObs;
+            active[sim] = 0;
+          }
+        }
+        obsPtr++;
+      }
+
+      if (!active[sim]) break;
+    }
+
+    // ── Maturité pour non-rappelés ──
+    if (active[sim]) {
+      const finalPerf = S;
+      // Phoenix mémoire : on verse les coupons en attente si au-dessus de cb
+      if (isPhoenix && memory && finalPerf >= cb) {
+        totalCoupon[sim] += memCount[sim] * cpnPA * dtObs;
+      }
+      // Athena non-rappelé : zéro coupon (capital conditionnel uniquement)
+      // Capital
+      if (finalPerf >= kb) {
+        capitalRet[sim] = partK;
+      } else {
+        capitalRet[sim] = finalPerf; // perte proportionnelle
+      }
+    }
+  }
+
+  // ── Statistiques ──
+  const recallByDate = new Array(nObs).fill(0);
+  let nRecalled = 0, totalLife = 0, sumReturn = 0, sumCoupon = 0;
+  let nLoss = 0, nLoss10 = 0;
+  const returns = [];
+
+  for (let sim = 0; sim < N; sim++) {
+    const ret = totalCoupon[sim] + capitalRet[sim] - 1.0;
+    returns.push(ret);
+    sumReturn += ret;
+    sumCoupon += totalCoupon[sim];
+    if (ret < 0)     nLoss++;
+    if (ret < -0.10) nLoss10++;
+
+    if (recalledAt[sim] >= 0) {
+      nRecalled++;
+      recallByDate[recalledAt[sim]]++;
+      totalLife += tObs[recalledAt[sim]]; // date réelle en années
+    } else {
+      totalLife += T;
+    }
+  }
+
+  const pRecall   = nRecalled / N;
+  const avgLife   = totalLife / N;
+  const avgReturn = sumReturn / N;
+  const avgCoupon = sumCoupon / N;
+  const pLoss     = nLoss / N;
+  const pLoss10   = nLoss10 / N;
+
+  // ── Update KPIs ──
+  function pct(v,dec=1){ return (v*100).toFixed(dec)+'%'; }
+  document.getElementById('res-recall').textContent = pct(pRecall);
+  document.getElementById('res-recall').className = 'kpi-val ' + (pRecall > 0.7 ? 'green' : 'gold');
+  document.getElementById('res-life').textContent   = avgLife.toFixed(2)+' ans';
+  document.getElementById('res-coupon').textContent = pct(avgCoupon);
+  document.getElementById('res-ret').textContent    = (avgReturn >= 0 ? '+' : '') + pct(avgReturn);
+  document.getElementById('res-ret').className      = 'kpi-val ' + (avgReturn >= 0 ? 'green' : 'red');
+  document.getElementById('res-loss').textContent   = pct(pLoss);
+  document.getElementById('res-loss').className     = 'kpi-val ' + (pLoss < 0.1 ? 'green' : pLoss < 0.3 ? 'gold' : 'red');
+  document.getElementById('res-loss10').textContent = pct(pLoss10);
+  document.getElementById('res-loss10').className   = 'kpi-val ' + (pLoss10 < 0.05 ? 'green' : pLoss10 < 0.15 ? 'gold' : 'red');
+
+  // ── Distribution chart ──
+  destroyCharts();
+
+  // Histogram
+  const minR = Math.max(-0.7, Math.min(...returns));
+  const maxR = Math.min(1.0,  Math.max(...returns));
+  const nBins = 50;
+  const binW  = (maxR - minR) / nBins;
+  const bins  = new Array(nBins).fill(0);
+  const labels = [];
+  for (let i = 0; i < nBins; i++) labels.push(((minR + (i + 0.5) * binW) * 100).toFixed(1) + '%');
+  for (const r of returns) {
+    const b = Math.min(nBins - 1, Math.floor((r - minR) / binW));
+    if (b >= 0) bins[b]++;
+  }
+
+  const ctx1 = document.getElementById('chart-dist').getContext('2d');
+  chartDist = new Chart(ctx1, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: bins.map(v => v / N),
+        backgroundColor: bins.map((_, i) => {
+          const rv = minR + (i + 0.5) * binW;
+          return rv < 0 ? 'rgba(192,57,43,0.6)' : 'rgba(201,168,76,0.6)';
+        }),
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => (ctx.parsed.y * 100).toFixed(2) + '%' } } },
+      scales: {
+        x: { ticks: { color: '#8A8478', font: { family: 'DM Mono', size: 9 }, maxRotation: 0, maxTicksLimit: 10 }, grid: { color: '#2A2A1E' } },
+        y: { ticks: { color: '#8A8478', font: { family: 'DM Mono', size: 9 }, callback: v => (v*100).toFixed(1)+'%' }, grid: { color: '#2A2A1E' } }
+      }
+    }
+  });
+
+  const ctx2 = document.getElementById('chart-recall').getContext('2d');
+  chartRecall = new Chart(ctx2, {
+    type: 'bar',
+    data: {
+      labels: tObs.map(t => t.toFixed(2) + ' an'),
+      datasets: [{
+        label: 'P(rappel)',
+        data: recallByDate.map(v => v / N * 100),
+        backgroundColor: 'rgba(184,150,90,0.65)',
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ctx.parsed.y.toFixed(2) + '%' } } },
+      scales: {
+        x: { ticks: { color: '#8A8478', font: { family: 'DM Mono', size: 9 } }, grid: { color: '#2A2A1E' } },
+        y: { ticks: { color: '#8A8478', font: { family: 'DM Mono', size: 9 }, callback: v => v.toFixed(1)+'%' }, grid: { color: '#2A2A1E' } }
+      }
+    }
+  });
+
+  const log = document.getElementById('log-box');
+  const acDesc = acInit === acFin
+    ? `${(acInit*100).toFixed(0)}% (fixe)`
+    : `${(acInit*100).toFixed(0)}% → ${(acFin*100).toFixed(0)}% (dégressif)`;
+  const typeDesc = isPhoenix
+    ? `Phoenix | coupon ${(cpnPA*100).toFixed(1)}%/an | barrière coupon ${(cb*100).toFixed(0)}% | mémoire ${memory?'oui':'non'}`
+    : `Athena | coupon capitalisé ${(cpnPA*100).toFixed(1)}%/an`;
+  log.innerHTML = `
+    <span class="info">// Simulation terminée — ${N.toLocaleString('fr')} trajectoires · ${nObs} observations</span><br>
+    <span class="ok">→ Type : ${typeDesc}</span><br>
+    <span class="ok">→ σ = ${(sigma*100).toFixed(1)}%  |  r = ${(r*100).toFixed(1)}%  |  T = ${T} ans</span><br>
+    <span class="ok">→ Autocall : ${acDesc}  |  PDI : ${(kb*100).toFixed(0)}%  |  Capital : ${(partK*100).toFixed(0)}%</span><br>
+    <span class="ok">→ P(rappel) = ${pct(pRecall)}  |  Durée moy. = ${avgLife.toFixed(2)} ans  |  Rdt moy. = ${(avgReturn>=0?'+':'')+pct(avgReturn)}</span><br>
+    <span class="${pLoss < 0.15 ? 'ok' : 'warn'}">→ P(perte) = ${pct(pLoss)}  |  P(perte > 10%) = ${pct(pLoss10)}</span>
+  `;
+
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('results-content').style.display = 'block';
+}
+</script>
+</body>
+</html>
