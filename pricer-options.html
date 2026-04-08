@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pricer Options — Julien Guebourg</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+:root{--bg:#080B10;--surface:#0D1117;--surface2:#111827;--border:#1C2333;--text:#C9D1D9;--muted:#6E7681;--accent:#3B82F6;--accent2:#10B981;--red:#EF4444;--gold:#F59E0B;--white:#F0F6FC;--purple:#A78BFA;}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 3rem;height:60px;background:rgba(8,11,16,0.9);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+.nav-logo{font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--accent);letter-spacing:0.1em;text-decoration:none;}
+.nav-links{display:flex;gap:2rem;list-style:none;}
+.nav-links a{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);text-decoration:none;letter-spacing:0.08em;transition:color 0.2s;}
+.nav-links a:hover,.nav-links a.active{color:var(--white);}
+.sub-nav{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:0 3rem;display:flex;gap:0;border-bottom:1px solid var(--border);margin-top:60px;}
+.sub-nav a{font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.1em;text-transform:uppercase;padding:1rem 1.5rem;color:var(--muted);text-decoration:none;border-bottom:2px solid transparent;transition:all 0.2s;}
+.sub-nav a:hover{color:var(--text);}
+.sub-nav a.active{color:var(--purple);border-bottom-color:var(--purple);}
+.page-hero{position:relative;z-index:1;padding:3rem 3rem 2.5rem;max-width:1100px;margin:0 auto;border-bottom:1px solid var(--border);}
+.page-tag{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--purple);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:0.8rem;}
+.page-hero h1{font-family:'DM Serif Display',serif;font-size:clamp(2rem,4vw,3rem);color:var(--white);line-height:1.05;margin-bottom:0.6rem;}
+.page-hero p{color:var(--muted);font-size:0.9rem;max-width:600px;}
+.layout{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:2rem 3rem;display:grid;grid-template-columns:300px 1fr;gap:2rem;align-items:start;}
+.params{background:var(--surface);border:1px solid var(--border);position:sticky;top:80px;}
+.params-hdr{padding:1rem 1.4rem;border-bottom:1px solid var(--border);font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--purple);letter-spacing:0.15em;text-transform:uppercase;}
+.param-grp{padding:1rem 1.4rem;border-bottom:1px solid var(--border);}
+.param-grp-t{font-family:'DM Mono',monospace;font-size:0.62rem;color:var(--muted);letter-spacing:0.14em;text-transform:uppercase;margin-bottom:0.7rem;}
+.pi{margin-bottom:0.8rem;}
+.pi:last-child{margin-bottom:0;}
+.pi label{display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--text);margin-bottom:0.3rem;}
+.pi label .v{color:var(--purple);font-weight:500;}
+input[type=range]{width:100%;accent-color:var(--purple);height:3px;cursor:pointer;}
+select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:'DM Mono',monospace;font-size:0.72rem;padding:0.42rem 0.65rem;outline:none;cursor:pointer;transition:border-color 0.2s;appearance:none;}
+.type-toggle{display:flex;gap:0;}
+.type-btn{flex:1;font-family:'DM Mono',monospace;font-size:0.72rem;letter-spacing:0.08em;text-transform:uppercase;padding:0.6rem;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all 0.2s;}
+.type-btn.active-call{background:rgba(59,130,246,0.15);border-color:var(--accent);color:var(--accent);}
+.type-btn.active-put{background:rgba(239,68,68,0.15);border-color:var(--red);color:var(--red);}
+.price-hero{background:var(--surface);border:1px solid var(--border);padding:1.8rem 2rem;margin-bottom:1.5rem;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:1rem;}
+.price-label{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.15em;text-transform:uppercase;margin-bottom:0.3rem;}
+.price-value{font-family:'DM Serif Display',serif;font-size:3.2rem;color:var(--white);line-height:1;}
+.price-value.call{color:var(--accent);}
+.price-value.put{color:var(--red);}
+.parity-box{font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);background:var(--surface2);padding:0.9rem 1.2rem;border:1px solid var(--border);min-width:260px;}
+.pok{color:var(--accent2);}
+.perr{color:var(--red);}
+.d1d2-row{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--purple);padding:1rem 1.4rem;font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);margin-bottom:1.5rem;display:flex;gap:2rem;flex-wrap:wrap;}
+.d1d2-item .lbl{font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;}
+.d1d2-item .val{color:var(--white);font-size:0.82rem;}
+.greeks-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1.5px;background:var(--border);border:1px solid var(--border);margin-bottom:1.5rem;}
+.greek{background:var(--surface);padding:1.2rem 0.8rem;text-align:center;}
+.greek-sym{font-family:'DM Serif Display',serif;font-size:1.6rem;color:var(--white);display:block;font-style:italic;line-height:1;}
+.greek-name{font-family:'DM Mono',monospace;font-size:0.55rem;color:var(--muted);letter-spacing:0.08em;text-transform:uppercase;margin-top:0.25rem;display:block;}
+.greek-val{font-family:'DM Mono',monospace;font-size:0.82rem;font-weight:500;margin-top:0.4rem;display:block;}
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;}
+.chart-box{background:var(--surface);border:1px solid var(--border);padding:1.3rem;}
+.chart-box.full{grid-column:1/-1;}
+.chart-ttl{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.9rem;}
+canvas{max-height:220px;}
+.formula-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--gold);padding:1.2rem 1.5rem;font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--muted);line-height:2.2;margin-bottom:1.5rem;}
+.formula-box .f{color:var(--white);}
+.formula-box .fc{color:var(--accent);}
+.formula-box .fp{color:var(--red);}
+footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);}
+@media(max-width:900px){
+  nav,.sub-nav,.page-hero,.layout{padding-left:1.5rem;padding-right:1.5rem;}
+  .layout{grid-template-columns:1fr;}
+  .params{position:static;}
+  .greeks-grid{grid-template-columns:repeat(3,1fr);}
+  .charts-row{grid-template-columns:1fr;}
+  footer{flex-direction:column;gap:0.5rem;}
+}
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="index.html">JG // STRUCTURED PRODUCTS</a>
+  <ul class="nav-links">
+    <li><a href="phoenix.html">PHOENIX</a></li>
+    <li><a href="athena.html">ATHENA</a></li>
+    <li><a href="pricer.html">PRICER</a></li>
+    <li><a href="backtest.html">BACKTEST</a></li>
+    <li><a href="pricer-options.html" class="active">OPTIONS</a></li>
+  </ul>
+</nav>
+
+<div class="sub-nav">
+  <a href="pricer.html">Pricer Autocalls</a>
+  <a href="pricer-options.html" class="active">Pricer Options</a>
+  <a href="backtest-options.html">Backtest Options</a>
+</div>
+
+<div class="page-hero">
+  <p class="page-tag">// Black-Scholes · Recalcul instantané</p>
+  <h1>Pricer Options<br>Vanilles</h1>
+  <p>Prix BS et Greeks recalculés en temps réel. Parité call-put vérifiée numériquement. Dividende continu inclus.</p>
+</div>
+
+<div class="layout">
+  <div class="params">
+    <div class="params-hdr">// Paramètres</div>
+    <div class="param-grp">
+      <div class="param-grp-t">Type</div>
+      <div class="type-toggle">
+        <button class="type-btn active-call" id="btn-call" onclick="setType('call')">CALL</button>
+        <button class="type-btn" id="btn-put" onclick="setType('put')">PUT</button>
+      </div>
+    </div>
+    <div class="param-grp">
+      <div class="param-grp-t">Paramètres de marché</div>
+      <div class="pi"><label>Sous-jacent S <span class="v" id="lS">100</span></label><input type="range" id="iS" min="50" max="200" step="1" value="100" oninput="upd('lS',this.value);recalc()"></div>
+      <div class="pi"><label>Strike K <span class="v" id="lK">100</span></label><input type="range" id="iK" min="50" max="200" step="1" value="100" oninput="upd('lK',this.value);recalc()"></div>
+      <div class="pi"><label>Maturité T (ans) <span class="v" id="lT">1.00</span></label><input type="range" id="iT" min="0.08" max="5" step="0.08" value="1" oninput="upd('lT',parseFloat(this.value).toFixed(2));recalc()"></div>
+      <div class="pi"><label>Volatilité σ <span class="v" id="lSig">20%</span></label><input type="range" id="iSig" min="1" max="100" step="0.5" value="20" oninput="upd('lSig',this.value+'%');recalc()"></div>
+      <div class="pi"><label>Taux sans risque r <span class="v" id="lR">3.5%</span></label><input type="range" id="iR" min="0" max="10" step="0.1" value="3.5" oninput="upd('lR',this.value+'%');recalc()"></div>
+      <div class="pi"><label>Dividende continu q <span class="v" id="lQ">0%</span></label><input type="range" id="iQ" min="0" max="8" step="0.1" value="0" oninput="upd('lQ',this.value+'%');recalc()"></div>
+    </div>
+  </div>
+
+  <div>
+    <div class="price-hero">
+      <div>
+        <div class="price-label" id="plbl">// Prix du Call</div>
+        <div class="price-value call" id="pval">—</div>
+      </div>
+      <div class="parity-box" id="parity">Parité call-put : en attente</div>
+    </div>
+
+    <div class="d1d2-row">
+      <div class="d1d2-item"><div class="lbl">d₁</div><div class="val" id="vd1">—</div></div>
+      <div class="d1d2-item"><div class="lbl">d₂</div><div class="val" id="vd2">—</div></div>
+      <div class="d1d2-item"><div class="lbl">N(d₁)</div><div class="val" id="vnd1">—</div></div>
+      <div class="d1d2-item"><div class="lbl">N(d₂)</div><div class="val" id="vnd2">—</div></div>
+      <div class="d1d2-item"><div class="lbl">N(−d₁)</div><div class="val" id="vnd1n">—</div></div>
+      <div class="d1d2-item"><div class="lbl">N(−d₂)</div><div class="val" id="vnd2n">—</div></div>
+    </div>
+
+    <div class="greeks-grid">
+      <div class="greek"><span class="greek-sym">Δ</span><span class="greek-name">Delta</span><span class="greek-val" id="gDelta">—</span></div>
+      <div class="greek"><span class="greek-sym">Γ</span><span class="greek-name">Gamma</span><span class="greek-val" id="gGamma">—</span></div>
+      <div class="greek"><span class="greek-sym">ν</span><span class="greek-name">Vega /1%σ</span><span class="greek-val" id="gVega">—</span></div>
+      <div class="greek"><span class="greek-sym">Θ</span><span class="greek-name">Theta /jour</span><span class="greek-val" id="gTheta">—</span></div>
+      <div class="greek"><span class="greek-sym">ρ</span><span class="greek-name">Rho /1%r</span><span class="greek-val" id="gRho">—</span></div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-box"><div class="chart-ttl">// Payoff maturité + valeur actuelle</div><canvas id="cPayoff"></canvas></div>
+      <div class="chart-box"><div class="chart-ttl">// Delta en fonction de S</div><canvas id="cDelta"></canvas></div>
+      <div class="chart-box full"><div class="chart-ttl">// Prix de l'option vs volatilité</div><canvas id="cVega"></canvas></div>
+    </div>
+
+    <div class="formula-box">
+      <div class="f">Black-Scholes avec dividende continu q (modèle Merton 1973)</div>
+      <div>d₁ = [ ln(S/K) + (r − q + σ²/2)·T ] / (σ·√T)</div>
+      <div>d₂ = d₁ − σ·√T</div>
+      <div><span class="fc">Call</span> = S·e<sup>−qT</sup>·N(d₁) − K·e<sup>−rT</sup>·N(d₂)</div>
+      <div><span class="fp">Put</span>  = K·e<sup>−rT</sup>·N(−d₂) − S·e<sup>−qT</sup>·N(−d₁)</div>
+      <div>Parité call-put : C − P = S·e<sup>−qT</sup> − K·e<sup>−rT</sup></div>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <span>© 2025 Julien Guebourg</span>
+  <span>Black-Scholes — À titre illustratif uniquement</span>
+  <a href="index.html" style="color:var(--muted);text-decoration:none;">← Accueil</a>
+</footer>
+
+<script>
+// ── ÉTAT ──────────────────────────────────────────────────────────────────
+let OT = 'call'; // option type
+const CH = {};   // chart instances
+
+function g(id){ return document.getElementById(id); }
+function upd(id, v){ g(id).textContent = v; }
+function setType(t){
+  OT = t;
+  g('btn-call').className = 'type-btn' + (t==='call' ? ' active-call' : '');
+  g('btn-put').className  = 'type-btn' + (t==='put'  ? ' active-put'  : '');
+  recalc();
+}
+
+// ── CDF NORMALE — Abramowitz & Stegun 26.2.17, erreur max 7.5×10⁻⁸ ──────
+function Phi(x){
+  const p=0.3275911;
+  const a=[0.254829592,-0.284496736,1.421413741,-1.453152027,1.061405429];
+  const sign = x<0 ? -1 : 1;
+  const xabs = Math.abs(x);
+  const t = 1/(1+p*xabs);
+  let poly = 0; for(let i=4;i>=0;i--) poly = poly*t + a[i];
+  const erfc = poly * t * Math.exp(-xabs*xabs/2);
+  return 0.5*(1 + sign*(1-erfc));
+}
+// PDF normale standard
+function phi(x){ return Math.exp(-0.5*x*x)/Math.sqrt(2*Math.PI); }
+
+// ── MOTEUR BLACK-SCHOLES ──────────────────────────────────────────────────
+// Returns { price, d1, d2, Nd1, Nd2, Nd1n, Nd2n, delta, gamma, vega, theta, rho }
+// Toutes les entrées sont en unités naturelles (S en €, sigma en décimal, etc.)
+function BS(S, K, T, sigma, r, q, type){
+  // Cas limite T=0 : valeur intrinsèque uniquement, Greeks indéfinis
+  if(T < 1e-10){
+    const p = type==='call' ? Math.max(S-K,0) : Math.max(K-S,0);
+    return {price:p,d1:NaN,d2:NaN,Nd1:NaN,Nd2:NaN,Nd1n:NaN,Nd2n:NaN,delta:NaN,gamma:NaN,vega:NaN,theta:NaN,rho:NaN};
+  }
+  // Cas limite sigma=0 : prix = valeur actualisée du payoff déterministe
+  if(sigma < 1e-10){
+    const fwd = S*Math.exp((r-q)*T);
+    const p = type==='call'
+      ? Math.max(fwd-K,0)*Math.exp(-r*T)
+      : Math.max(K-fwd,0)*Math.exp(-r*T);
+    return {price:p,d1:NaN,d2:NaN,Nd1:NaN,Nd2:NaN,Nd1n:NaN,Nd2n:NaN,delta:NaN,gamma:NaN,vega:NaN,theta:NaN,rho:NaN};
+  }
+
+  const sqrtT = Math.sqrt(T);
+  const d1 = (Math.log(S/K) + (r - q + 0.5*sigma*sigma)*T) / (sigma*sqrtT);
+  const d2 = d1 - sigma*sqrtT;
+
+  const Nd1  = Phi(d1),  Nd2  = Phi(d2);
+  const Nd1n = Phi(-d1), Nd2n = Phi(-d2);
+  const nd1  = phi(d1);
+
+  const eqT = Math.exp(-q*T);
+  const erT = Math.exp(-r*T);
+
+  // Prix
+  const price = type==='call'
+    ? S*eqT*Nd1  - K*erT*Nd2
+    : K*erT*Nd2n - S*eqT*Nd1n;
+
+  // Delta : ∂C/∂S ou ∂P/∂S
+  const delta = type==='call' ? eqT*Nd1 : eqT*(Nd1-1);
+
+  // Gamma : ∂²C/∂S² = ∂²P/∂S² (identique call et put)
+  const gamma = (eqT*nd1) / (S*sigma*sqrtT);
+
+  // Vega : ∂C/∂σ = ∂P/∂σ, divisé par 100 pour exprimer par 1% de vol
+  const vega = S*eqT*nd1*sqrtT / 100;
+
+  // Theta : ∂C/∂t (décroissance par jour = divisé par 365)
+  // Signe : theta est négatif en général (time decay)
+  const theta = type==='call'
+    ? (-(S*eqT*nd1*sigma)/(2*sqrtT) - r*K*erT*Nd2  + q*S*eqT*Nd1 ) / 365
+    : (-(S*eqT*nd1*sigma)/(2*sqrtT) + r*K*erT*Nd2n - q*S*eqT*Nd1n) / 365;
+
+  // Rho : ∂C/∂r, divisé par 100 pour exprimer par 1% de taux
+  const rho = type==='call'
+    ?  K*T*erT*Nd2  / 100
+    : -K*T*erT*Nd2n / 100;
+
+  return {price,d1,d2,Nd1,Nd2,Nd1n,Nd2n,delta,gamma,vega,theta,rho};
+}
+
+// ── RECALCUL PRINCIPAL ────────────────────────────────────────────────────
+function recalc(){
+  const S     = parseFloat(g('iS').value);
+  const K     = parseFloat(g('iK').value);
+  const T     = parseFloat(g('iT').value);
+  const sigma = parseFloat(g('iSig').value)/100;
+  const r     = parseFloat(g('iR').value)/100;
+  const q     = parseFloat(g('iQ').value)/100;
+  const type  = OT;
+
+  const res = BS(S,K,T,sigma,r,q,type);
+
+  // Prix
+  const pv = g('pval');
+  pv.textContent = isNaN(res.price) ? '—' : res.price.toFixed(4);
+  pv.className   = 'price-value ' + type;
+  g('plbl').textContent = '// Prix du ' + (type==='call'?'Call':'Put');
+
+  // Parité call-put : C - P = S·e^{-qT} - K·e^{-rT}
+  // On recalcule les deux côtés indépendamment pour vérification numérique
+  const C   = BS(S,K,T,sigma,r,q,'call').price;
+  const P   = BS(S,K,T,sigma,r,q,'put').price;
+  const lhs = C - P;
+  const rhs = S*Math.exp(-q*T) - K*Math.exp(-r*T);
+  const err = Math.abs(lhs-rhs);
+  if(!isNaN(res.d1)){
+    g('parity').innerHTML = err < 1e-8
+      ? `<span class="pok">✓ Parité vérifiée</span><br><span style="font-size:0.65rem;color:var(--muted)">C−P = ${lhs.toFixed(6)}<br>Se⁻ᵍᵀ−Ke⁻ʳᵀ = ${rhs.toFixed(6)}</span>`
+      : `<span class="perr">⚠ Écart = ${err.toExponential(2)}</span>`;
+  } else {
+    g('parity').textContent = 'Parité : cas limite';
+  }
+
+  // d1, d2
+  const f4 = v => isNaN(v)?'—':v.toFixed(4);
+  g('vd1').textContent  = f4(res.d1);
+  g('vd2').textContent  = f4(res.d2);
+  g('vnd1').textContent = f4(res.Nd1);
+  g('vnd2').textContent = f4(res.Nd2);
+  g('vnd1n').textContent= f4(res.Nd1n);
+  g('vnd2n').textContent= f4(res.Nd2n);
+
+  // Greeks
+  function setG(id, v, d){
+    const el = g(id);
+    if(isNaN(v)){ el.textContent='—'; el.style.color='var(--muted)'; return; }
+    el.textContent = (v>=0?'+':'')+v.toFixed(d);
+    el.style.color = v>0?'var(--accent2)':v<0?'var(--red)':'var(--white)';
+  }
+  setG('gDelta', res.delta, 4);
+  setG('gGamma', res.gamma, 6);
+  setG('gVega',  res.vega,  4);
+  setG('gTheta', res.theta, 4);
+  setG('gRho',   res.rho,   4);
+
+  // Charts
+  drawPayoff(S,K,T,sigma,r,q,type);
+  drawDeltaCurve(K,T,sigma,r,q,type);
+  drawVegaProfile(S,K,T,r,q,type);
+}
+
+// ── CHART PAYOFF ──────────────────────────────────────────────────────────
+function drawPayoff(S,K,T,sigma,r,q,type){
+  const n=80, Smin=K*0.4, Smax=K*1.8;
+  const labs=[], payoffs=[], vals=[];
+  for(let i=0;i<=n;i++){
+    const s=Smin+i*(Smax-Smin)/n;
+    labs.push(s.toFixed(0));
+    payoffs.push(type==='call'?Math.max(s-K,0):Math.max(K-s,0));
+    vals.push(BS(s,K,T,sigma,r,q,type).price);
+  }
+  const c = type==='call';
+  if(CH.payoff) CH.payoff.destroy();
+  CH.payoff = new Chart(g('cPayoff').getContext('2d'),{
+    type:'line',
+    data:{labels:labs,datasets:[
+      {label:'Valeur actuelle',data:vals,borderColor:c?'rgba(59,130,246,0.9)':'rgba(239,68,68,0.9)',backgroundColor:c?'rgba(59,130,246,0.08)':'rgba(239,68,68,0.08)',tension:0.3,pointRadius:0,fill:true},
+      {label:'Payoff à maturité',data:payoffs,borderColor:'rgba(245,158,11,0.8)',backgroundColor:'transparent',tension:0,pointRadius:0,borderDash:[5,3]}
+    ]},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{labels:{color:'#C9D1D9',font:{family:'DM Mono',size:9},boxWidth:10}}},
+      scales:{x:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9},maxTicksLimit:8},grid:{color:'#1C2333'}},
+              y:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9}},grid:{color:'#1C2333'},min:0}}}
+  });
+}
+
+// ── CHART DELTA ───────────────────────────────────────────────────────────
+function drawDeltaCurve(K,T,sigma,r,q,type){
+  const n=80, Smin=K*0.4, Smax=K*1.8;
+  const labs=[], deltas=[];
+  for(let i=0;i<=n;i++){
+    const s=Smin+i*(Smax-Smin)/n;
+    labs.push(s.toFixed(0));
+    deltas.push(BS(s,K,T,sigma,r,q,type).delta);
+  }
+  const c=type==='call';
+  if(CH.delta) CH.delta.destroy();
+  CH.delta = new Chart(g('cDelta').getContext('2d'),{
+    type:'line',
+    data:{labels:labs,datasets:[{label:'Delta',data:deltas,borderColor:c?'rgba(59,130,246,0.85)':'rgba(239,68,68,0.85)',backgroundColor:'transparent',tension:0.3,pointRadius:0}]},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{labels:{color:'#C9D1D9',font:{family:'DM Mono',size:9},boxWidth:10}}},
+      scales:{x:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9},maxTicksLimit:8},grid:{color:'#1C2333'}},
+              y:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9}},grid:{color:'#1C2333'}}}}
+  });
+}
+
+// ── CHART PRIX vs VOL ─────────────────────────────────────────────────────
+function drawVegaProfile(S,K,T,r,q,type){
+  const n=60;
+  const labs=[], pricesC=[], pricesP=[];
+  for(let i=0;i<=n;i++){
+    const sig=(0.01+i*(0.99)/n);
+    labs.push((sig*100).toFixed(0)+'%');
+    pricesC.push(BS(S,K,T,sig,r,q,'call').price);
+    pricesP.push(BS(S,K,T,sig,r,q,'put').price);
+  }
+  if(CH.vega) CH.vega.destroy();
+  CH.vega = new Chart(g('cVega').getContext('2d'),{
+    type:'line',
+    data:{labels:labs,datasets:[
+      {label:'Call',data:pricesC,borderColor:'rgba(59,130,246,0.85)',backgroundColor:'rgba(59,130,246,0.06)',tension:0.3,pointRadius:0,fill:true},
+      {label:'Put', data:pricesP,borderColor:'rgba(239,68,68,0.85)', backgroundColor:'rgba(239,68,68,0.06)', tension:0.3,pointRadius:0,fill:true}
+    ]},
+    options:{responsive:true,maintainAspectRatio:true,
+      plugins:{legend:{labels:{color:'#C9D1D9',font:{family:'DM Mono',size:9},boxWidth:10}}},
+      scales:{
+        x:{title:{display:true,text:'Volatilité σ',color:'#6E7681',font:{family:'DM Mono',size:9}},ticks:{color:'#6E7681',font:{family:'DM Mono',size:9},maxTicksLimit:10},grid:{color:'#1C2333'}},
+        y:{title:{display:true,text:'Prix',color:'#6E7681',font:{family:'DM Mono',size:9}},ticks:{color:'#6E7681',font:{family:'DM Mono',size:9}},grid:{color:'#1C2333'}}}}
+  });
+}
+
+// Premier calcul au chargement de la page
+recalc();
+</script>
+</body>
+</html>
