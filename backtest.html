@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Backtest — Julien Guebourg</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{--bg:#080B10;--surface:#0D1117;--border:#1C2333;--text:#C9D1D9;--muted:#6E7681;--accent:#3B82F6;--accent2:#10B981;--red:#EF4444;--gold:#F59E0B;--white:#F0F6FC;}
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 3rem;height:60px;background:rgba(8,11,16,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  .nav-logo{font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--accent);letter-spacing:0.1em;text-decoration:none;}
+  .nav-links{display:flex;gap:2rem;list-style:none;}
+  .nav-links a{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);text-decoration:none;letter-spacing:0.08em;transition:color 0.2s;}
+  .nav-links a:hover,.nav-links a.active{color:var(--white);}
+  .page-hero{position:relative;z-index:1;padding:8rem 3rem 4rem;max-width:1100px;margin:0 auto;border-bottom:1px solid var(--border);}
+  .page-tag{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--gold);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1rem;}
+  .page-hero h1{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4rem);color:var(--white);line-height:1.05;margin-bottom:1rem;}
+  .page-hero p{color:var(--muted);font-size:0.95rem;max-width:600px;}
+  section{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:4rem 3rem;}
+  .section-tag{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--gold);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:0.8rem;}
+  h2{font-family:'DM Serif Display',serif;font-size:clamp(1.6rem,2.5vw,2.2rem);color:var(--white);margin-bottom:1rem;}
+  p{color:var(--muted);font-size:0.92rem;margin-bottom:1rem;max-width:700px;}
+
+  .run-bar{display:flex;align-items:center;gap:1.5rem;margin-bottom:2rem;flex-wrap:wrap;}
+  .run-btn{font-family:'DM Mono',monospace;font-size:0.78rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.8rem 2rem;background:var(--accent);color:#fff;border:none;cursor:pointer;transition:background 0.2s;}
+  .run-btn:hover{background:#2563EB;}
+  .run-btn:disabled{background:var(--border);color:var(--muted);cursor:not-allowed;}
+  .run-status{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);}
+
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5px;background:var(--border);border:1px solid var(--border);margin-bottom:2rem;}
+  .kpi{background:var(--surface);padding:1.3rem 1.5rem;}
+  .kpi-header{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:0.8rem;}
+  .kpi-vals{display:flex;gap:1.5rem;}
+  .kpi-item{}
+  .kpi-v{font-family:'DM Serif Display',serif;font-size:1.4rem;display:block;}
+  .kpi-v.blue{color:var(--accent);}
+  .kpi-v.red{color:var(--red);}
+  .kpi-v.green{color:var(--accent2);}
+  .kpi-v.gold{color:var(--gold);}
+  .kpi-l{font-family:'DM Mono',monospace;font-size:0.6rem;color:var(--muted);}
+
+  .charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem;}
+  .chart-box{background:var(--surface);border:1px solid var(--border);padding:1.5rem;}
+  .chart-box.full{grid-column:1/-1;}
+  .chart-title{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);letter-spacing:0.12em;text-transform:uppercase;margin-bottom:1rem;}
+  .chart-box canvas{max-height:240px;}
+
+  .data-table{width:100%;border-collapse:collapse;border:1px solid var(--border);font-size:0.85rem;margin:1.5rem 0;}
+  .data-table th{background:#111827;color:var(--white);font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.08em;text-transform:uppercase;padding:0.9rem 1.2rem;text-align:left;border-bottom:1px solid var(--border);}
+  .data-table td{padding:0.8rem 1.2rem;border-bottom:1px solid var(--border);color:var(--muted);}
+  .data-table tr:last-child td{border-bottom:none;}
+  .td-blue{color:var(--accent)!important;font-weight:500;}
+  .td-red{color:var(--red)!important;font-weight:500;}
+  .td-green{color:var(--accent2)!important;font-weight:500;}
+
+  .methodology-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--gold);padding:1.5rem 2rem;font-size:0.85rem;color:var(--muted);margin-top:2rem;}
+  .methodology-box strong{color:var(--text);}
+
+  footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);}
+
+  #loading-bar{height:2px;background:var(--border);margin-bottom:2rem;overflow:hidden;display:none;}
+  #loading-bar-inner{height:100%;width:0%;background:var(--accent);transition:width 0.1s;}
+
+  @media(max-width:768px){
+    nav{padding:0 1.5rem;}
+    .page-hero,section{padding-left:1.5rem;padding-right:1.5rem;}
+    .charts-grid{grid-template-columns:1fr;}
+    .kpi-grid{grid-template-columns:repeat(2,1fr);}
+    footer{flex-direction:column;gap:0.5rem;}
+  }
+</style>
+</head>
+<body>
+<nav>
+  <a class="nav-logo" href="index.html">JG // STRUCTURED PRODUCTS</a>
+  <ul class="nav-links">
+    <li><a href="phoenix.html">PHOENIX</a></li>
+    <li><a href="athena.html">ATHENA</a></li>
+    <li><a href="pricer.html">PRICER</a></li>
+    <li><a href="backtest.html" class="active">BACKTEST</a></li>
+  </ul>
+</nav>
+
+<div class="page-hero">
+  <p class="page-tag">// Monte Carlo · 50 000 simulations</p>
+  <h1>Backtest<br>Comparatif</h1>
+  <p>Simulation Monte Carlo sur 5 ans — Phoenix Défensif vs Agressif. Paramètres calibrés sur l'Euro Stoxx 50 historique 2019-2024.</p>
+</div>
+
+<section>
+  <p class="section-tag">// Résultats</p>
+  <h2>Simulation Monte Carlo</h2>
+  <p>σ = 17.8% (vol réalisée Euro Stoxx 50, 5 ans) · r = 3.5% · 50 000 trajectoires · Horizon 5 ans</p>
+
+  <div class="run-bar">
+    <button class="run-btn" id="run-btn" onclick="runBacktest()">▶ LANCER LE BACKTEST</button>
+    <span class="run-status" id="run-status">// Prêt</span>
+  </div>
+
+  <div id="loading-bar"><div id="loading-bar-inner"></div></div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi">
+      <div class="kpi-header">P(rappel anticipé)</div>
+      <div class="kpi-vals">
+        <div class="kpi-item"><span class="kpi-v blue" id="k-rec-d">—</span><span class="kpi-l">Défensif</span></div>
+        <div class="kpi-item"><span class="kpi-v red"  id="k-rec-a">—</span><span class="kpi-l">Agressif</span></div>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-header">Durée vie moyenne</div>
+      <div class="kpi-vals">
+        <div class="kpi-item"><span class="kpi-v blue" id="k-life-d">—</span><span class="kpi-l">Défensif</span></div>
+        <div class="kpi-item"><span class="kpi-v red"  id="k-life-a">—</span><span class="kpi-l">Agressif</span></div>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-header">Rendement moyen</div>
+      <div class="kpi-vals">
+        <div class="kpi-item"><span class="kpi-v blue" id="k-ret-d">—</span><span class="kpi-l">Défensif</span></div>
+        <div class="kpi-item"><span class="kpi-v red"  id="k-ret-a">—</span><span class="kpi-l">Agressif</span></div>
+      </div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-header">P(perte)</div>
+      <div class="kpi-vals">
+        <div class="kpi-item"><span class="kpi-v green" id="k-loss-d">—</span><span class="kpi-l">Défensif</span></div>
+        <div class="kpi-item"><span class="kpi-v red"   id="k-loss-a">—</span><span class="kpi-l">Agressif</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <div class="chart-box">
+      <div class="chart-title">// Distribution des rendements — Défensif</div>
+      <canvas id="chart-dist-d"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">// Distribution des rendements — Agressif</div>
+      <canvas id="chart-dist-a"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">// Probabilité de rappel par date — Défensif (trimestriel)</div>
+      <canvas id="chart-rec-d"></canvas>
+    </div>
+    <div class="chart-box">
+      <div class="chart-title">// Probabilité cumulée de rappel</div>
+      <canvas id="chart-cumul"></canvas>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <table class="data-table" id="kpi-table" style="display:none;">
+    <thead>
+      <tr><th>Indicateur</th><th>Phoenix Défensif</th><th>Phoenix Agressif</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Probabilité rappel anticipé</td><td class="td-blue" id="t-rec-d">—</td><td class="td-red" id="t-rec-a">—</td></tr>
+      <tr><td>Durée de vie moyenne</td><td class="td-blue" id="t-life-d">—</td><td class="td-red" id="t-life-a">—</td></tr>
+      <tr><td>Coupon total moyen perçu</td><td class="td-blue" id="t-cpn-d">—</td><td class="td-red" id="t-cpn-a">—</td></tr>
+      <tr><td>Rendement total moyen</td><td class="td-blue" id="t-ret-d">—</td><td class="td-red" id="t-ret-a">—</td></tr>
+      <tr><td>Rendement médian</td><td class="td-blue" id="t-med-d">—</td><td class="td-red" id="t-med-a">—</td></tr>
+      <tr><td>Rendement annualisé moyen</td><td class="td-green" id="t-ann-d">—</td><td class="td-green" id="t-ann-a">—</td></tr>
+      <tr><td>Probabilité de perte (< 0%)</td><td class="td-blue" id="t-loss-d">—</td><td class="td-red" id="t-loss-a">—</td></tr>
+      <tr><td>Probabilité perte > 10%</td><td class="td-blue" id="t-loss10-d">—</td><td class="td-red" id="t-loss10-a">—</td></tr>
+    </tbody>
+  </table>
+
+  <div class="methodology-box">
+    <strong>Méthodologie</strong> — Simulation Black-Scholes par Monte Carlo (mesure risque-neutre). Chaque trajectoire est simulée à pas hebdomadaires (52 steps/an). Les paramètres σ = 17.8% et r = 3.5% sont calibrés sur l'historique Euro Stoxx 50 (2019-2024, incluant le choc Covid 2020 et le choc taux 2022). La volatilité constante constitue la principale limite du modèle : en production, un modèle de vol locale calibré sur la surface de vol implicite serait utilisé pour capturer le skew baissier, qui affecte significativement le prix du PDI.
+  </div>
+</section>
+
+<footer>
+  <span>© 2025 Julien Guebourg</span>
+  <span>Modèle BS — À titre illustratif uniquement</span>
+  <a href="index.html" style="color:var(--muted);text-decoration:none;">← Accueil</a>
+</footer>
+
+<script>
+// Shared MC engine
+function randn(){let u=0,v=0;while(u===0)u=Math.random();while(v===0)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);}
+
+function simulate(N, sigma, r, T, obsFreqPerYear, acBarsArr, cb, kb, cpnPA, memory, partK, isPhoenix) {
+  const SPY=52, nStep=T*SPY, dt=1/SPY;
+  const drift=(r-0.5*sigma*sigma)*dt, vol_dt=sigma*Math.sqrt(dt);
+  const nObs=T*obsFreqPerYear;
+  const obsIdx=[];
+  for(let i=1;i<=nObs;i++) obsIdx.push(Math.round(i*SPY/obsFreqPerYear));
+  const dtObs=T/nObs;
+
+  const recalledAt=new Int32Array(N).fill(-1);
+  const totalCoupon=new Float64Array(N);
+  const capitalRet=new Float64Array(N);
+  const active=new Uint8Array(N).fill(1);
+  const memCount=new Float64Array(N);
+
+  for(let sim=0;sim<N;sim++){
+    let S=1.0, obsPtr=0;
+    for(let t=1;t<=nStep&&active[sim];t++){
+      S*=Math.exp(drift+vol_dt*randn());
+      if(obsPtr<nObs&&t===obsIdx[obsPtr]){
+        if(isPhoenix){
+          if(memory){memCount[sim]++;if(S>=cb){totalCoupon[sim]+=memCount[sim]*cpnPA*dtObs;memCount[sim]=0;}}
+          else{if(S>=cb)totalCoupon[sim]+=cpnPA*dtObs;}
+        }
+        if(S>=acBarsArr[obsPtr]){recalledAt[sim]=obsPtr;capitalRet[sim]=partK;active[sim]=0;}
+        obsPtr++;
+      }
+    }
+    if(active[sim]){
+      if(isPhoenix&&memory&&S>=cb) totalCoupon[sim]+=memCount[sim]*cpnPA*dtObs;
+      capitalRet[sim]=S>=kb?partK:S;
+    }
+  }
+
+  const tObs=[];
+  for(let i=1;i<=nObs;i++) tObs.push(i/obsFreqPerYear);
+
+  const recallByDate=new Array(nObs).fill(0);
+  let nRec=0,sumRet=0,sumCpn=0,sumLife=0,nLoss=0,nLoss10=0;
+  const returns=[];
+  for(let sim=0;sim<N;sim++){
+    const ret=totalCoupon[sim]+capitalRet[sim]-1;
+    returns.push(ret);sumRet+=ret;sumCpn+=totalCoupon[sim];
+    if(ret<0)nLoss++;if(ret<-0.1)nLoss10++;
+    if(recalledAt[sim]>=0){nRec++;recallByDate[recalledAt[sim]]++;sumLife+=tObs[recalledAt[sim]];}
+    else sumLife+=T;
+  }
+  returns.sort((a,b)=>a-b);
+  const med=returns[Math.floor(N/2)];
+  const avgLife=sumLife/N;
+  return{pRecall:nRec/N,avgLife,avgReturn:sumRet/N,avgCoupon:sumCpn/N,pLoss:nLoss/N,pLoss10:nLoss10/N,median:med,recallByDate,tObs,returns};
+}
+
+let charts={};
+function destroyAll(){Object.values(charts).forEach(c=>{if(c)c.destroy();});charts={};}
+
+function makeHistChart(canvasId, returns, color, N){
+  const minR=Math.max(-0.7,returns[0]);
+  const maxR=Math.min(1.0,returns[returns.length-1]);
+  const nB=40,bW=(maxR-minR)/nB;
+  const bins=new Array(nB).fill(0);
+  const labels=[];
+  for(let i=0;i<nB;i++)labels.push(((minR+(i+0.5)*bW)*100).toFixed(0)+'%');
+  for(const r of returns){const b=Math.min(nB-1,Math.floor((r-minR)/bW));if(b>=0)bins[b]++;}
+  const ctx=document.getElementById(canvasId).getContext('2d');
+  return new Chart(ctx,{type:'bar',data:{labels,datasets:[{data:bins.map(v=>v/N),backgroundColor:bins.map((_,i)=>{const rv=minR+(i+0.5)*bW;return rv<0?'rgba(239,68,68,0.65)':color;}),borderWidth:0}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9},maxTicksLimit:8},grid:{color:'#1C2333'}},y:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9},callback:v=>(v*100).toFixed(1)+'%'},grid:{color:'#1C2333'}}}}});
+}
+
+function runBacktest(){
+  const btn=document.getElementById('run-btn');
+  btn.disabled=true;btn.textContent='⏳ SIMULATION...';
+  document.getElementById('run-status').textContent='// Calcul en cours...';
+  const lb=document.getElementById('loading-bar');
+  lb.style.display='block';
+  let w=0;const iv=setInterval(()=>{w=Math.min(90,w+5);document.getElementById('loading-bar-inner').style.width=w+'%';},80);
+
+  setTimeout(()=>{
+    const N=50000,sigma=0.178,r=0.035,T=5;
+
+    // Defensive: quarterly, degressive 100->80%
+    const nObsD=T*4;
+    const acD=[];for(let i=0;i<nObsD;i++)acD.push(1.0+(0.8-1.0)*i/(nObsD-1));
+    const resD=simulate(N,sigma,r,T,4,acD,0.70,0.60,0.07,true,1.0,true);
+
+    // Aggressive: annual, fixed 110%
+    const nObsA=T*1;
+    const acA=new Array(nObsA).fill(1.10);
+    const resA=simulate(N,sigma,r,T,1,acA,0.80,0.70,0.14,false,0.85,true);
+
+    clearInterval(iv);
+    document.getElementById('loading-bar-inner').style.width='100%';
+    setTimeout(()=>{lb.style.display='none';document.getElementById('loading-bar-inner').style.width='0%';},300);
+
+    function p(v,d=1){return(v*100).toFixed(d)+'%';}
+    function sgn(v){return(v>=0?'+':'')+p(v);}
+
+    // KPI cards
+    document.getElementById('k-rec-d').textContent=p(resD.pRecall);
+    document.getElementById('k-rec-a').textContent=p(resA.pRecall);
+    document.getElementById('k-life-d').textContent=resD.avgLife.toFixed(2)+' ans';
+    document.getElementById('k-life-a').textContent=resA.avgLife.toFixed(2)+' ans';
+    document.getElementById('k-ret-d').textContent=sgn(resD.avgReturn);
+    document.getElementById('k-ret-a').textContent=sgn(resA.avgReturn);
+    document.getElementById('k-loss-d').textContent=p(resD.pLoss);
+    document.getElementById('k-loss-a').textContent=p(resA.pLoss);
+
+    // Table
+    document.getElementById('t-rec-d').textContent=p(resD.pRecall);
+    document.getElementById('t-rec-a').textContent=p(resA.pRecall);
+    document.getElementById('t-life-d').textContent=resD.avgLife.toFixed(2)+' ans';
+    document.getElementById('t-life-a').textContent=resA.avgLife.toFixed(2)+' ans';
+    document.getElementById('t-cpn-d').textContent=p(resD.avgCoupon);
+    document.getElementById('t-cpn-a').textContent=p(resA.avgCoupon);
+    document.getElementById('t-ret-d').textContent=sgn(resD.avgReturn);
+    document.getElementById('t-ret-a').textContent=sgn(resA.avgReturn);
+    document.getElementById('t-med-d').textContent=sgn(resD.median);
+    document.getElementById('t-med-a').textContent=sgn(resA.median);
+    document.getElementById('t-ann-d').textContent=sgn(resD.avgReturn/resD.avgLife)+'/an';
+    document.getElementById('t-ann-a').textContent=sgn(resA.avgReturn/resA.avgLife)+'/an';
+    document.getElementById('t-loss-d').textContent=p(resD.pLoss);
+    document.getElementById('t-loss-a').textContent=p(resA.pLoss);
+    document.getElementById('t-loss10-d').textContent=p(resD.pLoss10);
+    document.getElementById('t-loss10-a').textContent=p(resA.pLoss10);
+    document.getElementById('kpi-table').style.display='table';
+
+    // Charts
+    destroyAll();
+    charts.distD=makeHistChart('chart-dist-d',resD.returns,'rgba(59,130,246,0.65)',N);
+    charts.distA=makeHistChart('chart-dist-a',resA.returns,'rgba(239,68,68,0.65)',N);
+
+    // Recall by date (defensive)
+    const ctx3=document.getElementById('chart-rec-d').getContext('2d');
+    charts.recD=new Chart(ctx3,{type:'bar',data:{labels:resD.tObs.map(t=>t.toFixed(2)+' an'),datasets:[{data:resD.recallByDate.map(v=>v/N*100),backgroundColor:'rgba(59,130,246,0.65)',borderWidth:0}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9},maxTicksLimit:10},grid:{color:'#1C2333'}},y:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9},callback:v=>v.toFixed(1)+'%'},grid:{color:'#1C2333'}}}}});
+
+    // Cumulative recall
+    const cumulD=resD.recallByDate.map((v,i,a)=>a.slice(0,i+1).reduce((s,x)=>s+x,0)/N*100);
+    const cumulA=resA.recallByDate.map((v,i,a)=>a.slice(0,i+1).reduce((s,x)=>s+x,0)/N*100);
+    const ctx4=document.getElementById('chart-cumul').getContext('2d');
+    charts.cumul=new Chart(ctx4,{type:'line',data:{labels:resD.tObs.map(t=>t.toFixed(2)),datasets:[{label:'Défensif',data:cumulD,borderColor:'rgba(59,130,246,0.9)',backgroundColor:'rgba(59,130,246,0.08)',tension:0.3,pointRadius:3,fill:true},{label:'Agressif',data:cumulA,borderColor:'rgba(239,68,68,0.9)',backgroundColor:'rgba(239,68,68,0.06)',tension:0.3,pointRadius:3,fill:true}]},options:{responsive:true,maintainAspectRatio:true,plugins:{legend:{labels:{color:'#C9D1D9',font:{family:'DM Mono',size:9}}}},scales:{x:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9}},grid:{color:'#1C2333'}},y:{ticks:{color:'#6E7681',font:{family:'DM Mono',size:9},callback:v=>v.toFixed(0)+'%'},grid:{color:'#1C2333'},max:100,min:0}}}});
+
+    btn.disabled=false;btn.textContent='↺ RELANCER';
+    document.getElementById('run-status').textContent='// Simulation terminée — '+N.toLocaleString('fr')+' trajectoires';
+  },100);
+}
+</script>
+</body>
+</html>

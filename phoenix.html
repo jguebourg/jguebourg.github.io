@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phoenix — Julien Guebourg</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#080B10;--surface:#0D1117;--border:#1C2333;--text:#C9D1D9;
+    --muted:#6E7681;--accent:#3B82F6;--accent2:#10B981;--red:#EF4444;
+    --gold:#F59E0B;--white:#F0F6FC;
+  }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;font-weight:300;line-height:1.7;overflow-x:hidden;}
+  body::before{content:'';position:fixed;inset:0;background-image:linear-gradient(rgba(59,130,246,0.03) 1px,transparent 1px),linear-gradient(90deg,rgba(59,130,246,0.03) 1px,transparent 1px);background-size:40px 40px;pointer-events:none;z-index:0;}
+
+  nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:0 3rem;height:60px;background:rgba(8,11,16,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);}
+  .nav-logo{font-family:'DM Mono',monospace;font-size:0.85rem;color:var(--accent);letter-spacing:0.1em;text-decoration:none;}
+  .nav-links{display:flex;gap:2rem;list-style:none;}
+  .nav-links a{font-family:'DM Mono',monospace;font-size:0.75rem;color:var(--muted);text-decoration:none;letter-spacing:0.08em;transition:color 0.2s;}
+  .nav-links a:hover,.nav-links a.active{color:var(--white);}
+
+  .page-hero{position:relative;z-index:1;padding:8rem 3rem 4rem;max-width:1100px;margin:0 auto;border-bottom:1px solid var(--border);}
+  .page-tag{font-family:'DM Mono',monospace;font-size:0.72rem;color:var(--accent);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:1rem;}
+  .page-hero h1{font-family:'DM Serif Display',serif;font-size:clamp(2.5rem,5vw,4rem);color:var(--white);line-height:1.05;margin-bottom:1rem;}
+  .page-hero p{color:var(--muted);font-size:0.95rem;max-width:600px;}
+
+  section{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:4rem 3rem;}
+  .section-tag{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--accent);letter-spacing:0.2em;text-transform:uppercase;margin-bottom:0.8rem;}
+  h2{font-family:'DM Serif Display',serif;font-size:clamp(1.6rem,2.5vw,2.2rem);color:var(--white);margin-bottom:1.5rem;}
+  h3{font-family:'DM Serif Display',serif;font-size:1.3rem;color:var(--white);margin-bottom:1rem;}
+  p{color:var(--muted);font-size:0.92rem;margin-bottom:1rem;max-width:700px;}
+
+  /* ── FORMULA ── */
+  .formula-box{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);padding:1.5rem 2rem;margin:1.5rem 0;font-family:'DM Mono',monospace;font-size:0.88rem;color:var(--white);letter-spacing:0.02em;}
+  .formula-box .label{font-size:0.65rem;color:var(--muted);text-transform:uppercase;letter-spacing:0.15em;margin-bottom:0.5rem;display:block;}
+
+  /* ── COMPARISON GRID ── */
+  .compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5px;background:var(--border);border:1px solid var(--border);margin:2rem 0;}
+  .compare-col{background:var(--surface);padding:2rem;}
+  .compare-col.defensive .col-header{color:var(--accent);}
+  .compare-col.aggressive .col-header{color:var(--red);}
+  .col-header{font-family:'DM Mono',monospace;font-size:0.75rem;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:1.5rem;display:flex;align-items:center;gap:0.5rem;}
+  .col-header::before{content:'';display:inline-block;width:8px;height:8px;border-radius:50%;background:currentColor;}
+
+  .param-row{display:flex;justify-content:space-between;align-items:center;padding:0.7rem 0;border-bottom:1px solid var(--border);font-size:0.85rem;}
+  .param-row:last-child{border-bottom:none;}
+  .param-label{color:var(--muted);font-family:'DM Mono',monospace;font-size:0.75rem;}
+  .param-value{color:var(--white);font-weight:500;}
+  .param-value.good{color:var(--accent2);}
+  .param-value.warn{color:var(--gold);}
+  .param-value.bad {color:var(--red);}
+
+  /* ── MECHANISM STEPS ── */
+  .steps{display:flex;flex-direction:column;gap:0;border:1px solid var(--border);}
+  .step{display:grid;grid-template-columns:60px 1fr;background:var(--surface);border-bottom:1px solid var(--border);}
+  .step:last-child{border-bottom:none;}
+  .step-num{display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:1.2rem;color:var(--accent);border-right:1px solid var(--border);}
+  .step-content{padding:1.2rem 1.5rem;}
+  .step-title{font-family:'DM Mono',monospace;font-size:0.78rem;color:var(--white);letter-spacing:0.05em;margin-bottom:0.3rem;}
+  .step-desc{font-size:0.83rem;color:var(--muted);margin:0;max-width:none;}
+
+  /* ── KPI CARDS ── */
+  .kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1.5px;background:var(--border);border:1px solid var(--border);margin:2rem 0;}
+  .kpi{background:var(--surface);padding:1.5rem;}
+  .kpi-value{font-family:'DM Serif Display',serif;font-size:1.8rem;color:var(--white);display:block;margin-bottom:0.2rem;}
+  .kpi-value.blue{color:var(--accent);}
+  .kpi-value.red {color:var(--red);}
+  .kpi-label{font-family:'DM Mono',monospace;font-size:0.65rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;}
+  .kpi-sub{font-family:'DM Mono',monospace;font-size:0.68rem;color:var(--muted);margin-top:0.3rem;}
+
+  /* ── TABLE ── */
+  .data-table{width:100%;border-collapse:collapse;border:1px solid var(--border);font-size:0.85rem;margin:1.5rem 0;}
+  .data-table th{background:#111827;color:var(--white);font-family:'DM Mono',monospace;font-size:0.7rem;letter-spacing:0.1em;text-transform:uppercase;padding:0.9rem 1.2rem;text-align:left;border-bottom:1px solid var(--border);}
+  .data-table td{padding:0.8rem 1.2rem;border-bottom:1px solid var(--border);color:var(--muted);}
+  .data-table tr:last-child td{border-bottom:none;}
+  .data-table tr:hover td{background:rgba(59,130,246,0.04);}
+  .td-blue{color:var(--accent) !important;font-weight:500;}
+  .td-red {color:var(--red) !important;font-weight:500;}
+  .td-green{color:var(--accent2) !important;font-weight:500;}
+  .td-gold{color:var(--gold) !important;font-weight:500;}
+
+  .alert{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--gold);padding:1.2rem 1.5rem;margin:1.5rem 0;font-size:0.85rem;color:var(--muted);}
+  .alert strong{color:var(--gold);}
+
+  footer{position:relative;z-index:1;border-top:1px solid var(--border);padding:2rem 3rem;display:flex;justify-content:space-between;align-items:center;font-family:'DM Mono',monospace;font-size:0.7rem;color:var(--muted);}
+
+  @media(max-width:768px){
+    nav{padding:0 1.5rem;}
+    .page-hero,section{padding-left:1.5rem;padding-right:1.5rem;}
+    .compare-grid,.kpi-grid{grid-template-columns:1fr;}
+    footer{flex-direction:column;gap:0.5rem;text-align:center;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">JG // STRUCTURED PRODUCTS</a>
+  <ul class="nav-links">
+    <li><a href="phoenix.html" class="active">PHOENIX</a></li>
+    <li><a href="athena.html">ATHENA</a></li>
+    <li><a href="pricer.html">PRICER</a></li>
+    <li><a href="backtest.html">BACKTEST</a></li>
+  </ul>
+</nav>
+
+<div class="page-hero">
+  <p class="page-tag">// Produit structuré</p>
+  <h1>Phoenix<br>Autocall</h1>
+  <p>Analyse complète de la construction, des mécanismes et des profils de risque du Phoenix — du défensif à l'agressif.</p>
+</div>
+
+<!-- ── CONSTRUCTION ── -->
+<section>
+  <p class="section-tag">// 01 — Construction</p>
+  <h2>Décomposition par blocs</h2>
+  <p>Un Phoenix se décompose en quatre instruments élémentaires. Cette décomposition est fondamentale pour comprendre d'où vient le coupon et quel risque l'investisseur porte réellement.</p>
+
+  <div class="formula-box">
+    <span class="label">Formule de construction</span>
+    Phoenix = ZCB + Digitales Coupons + Digitale Autocall − PDI
+  </div>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">①</div>
+      <div class="step-content">
+        <div class="step-title">ZERO COUPON BOND (ZCB)</div>
+        <div class="step-desc">Obligation zéro coupon qui garantit le remboursement du nominal à maturité. Son coût aujourd'hui est la valeur actualisée du capital, soit environ 80€ pour 100€ remboursés dans 5 ans à r=3.5%. C'est le socle de protection du capital.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">②</div>
+      <div class="step-content">
+        <div class="step-title">DIGITALES COUPONS</div>
+        <div class="step-desc">Options digitales qui versent le coupon conditionnel si le sous-jacent est au-dessus de la barrière coupon à chaque date d'observation. Avec l'effet mémoire, les coupons non versés s'accumulent et sont payés en une fois dès que la barrière est franchie.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">③</div>
+      <div class="step-content">
+        <div class="step-title">DIGITALE AUTOCALL</div>
+        <div class="step-desc">Option digitale qui déclenche le remboursement anticipé si le sous-jacent dépasse la barrière d'autocall à une date d'observation. Sur un Phoenix défensif, cette barrière est dégressive : elle passe de 100% à 80% sur 5 ans, ce qui augmente la probabilité de rappel.</div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">④</div>
+      <div class="step-content">
+        <div class="step-title">PUT DOWN-IN (PDI) — vendu</div>
+        <div class="step-desc">L'investisseur est SHORT du PDI. Il a vendu cette protection à la banque. C'est ce qui finance le coupon élevé. En contrepartie, si le sous-jacent franchit la barrière de protection à la baisse, l'investisseur subit la perte en capital proportionnellement.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="alert">
+    <strong>⚠ Risque dividendes</strong> — En étant short PDI, des dividendes élevés font baisser mécaniquement l'indice et augmentent la probabilité de franchir la barrière. C'est pourquoi on utilise un <strong>indice à décrement fixe</strong> (ex : Euro Stoxx 50 Decrement 50pts) pour neutraliser ce risque.
+  </div>
+</section>
+
+<!-- ── COMPARAISON ── -->
+<section style="border-top:1px solid var(--border);padding-top:4rem;">
+  <p class="section-tag">// 02 — Comparaison</p>
+  <h2>Défensif vs Agressif</h2>
+  <p>Les deux constructions partagent la même architecture mais divergent radicalement sur leurs paramètres, leur profil de risque et leur sous-jacent.</p>
+
+  <div class="compare-grid">
+    <div class="compare-col defensive">
+      <div class="col-header">Phoenix Défensif</div>
+      <div class="param-row"><span class="param-label">Barrière autocall</span><span class="param-value good">100% → 80% (dégressif)</span></div>
+      <div class="param-row"><span class="param-label">Fréquence observations</span><span class="param-value good">Trimestrielle (20×)</span></div>
+      <div class="param-row"><span class="param-label">Barrière coupon</span><span class="param-value">70%</span></div>
+      <div class="param-row"><span class="param-label">Barrière capital</span><span class="param-value good">60%</span></div>
+      <div class="param-row"><span class="param-label">Coupon annuel</span><span class="param-value">7%</span></div>
+      <div class="param-row"><span class="param-label">Effet mémoire</span><span class="param-value good">Oui</span></div>
+      <div class="param-row"><span class="param-label">Protection capital</span><span class="param-value good">100% (ZCB)</span></div>
+      <div class="param-row"><span class="param-label">Sous-jacent</span><span class="param-value">Euro Stoxx 50 Decrement</span></div>
+      <div class="param-row"><span class="param-label">Horizon</span><span class="param-value">5 ans</span></div>
+    </div>
+    <div class="compare-col aggressive">
+      <div class="col-header">Phoenix Agressif</div>
+      <div class="param-row"><span class="param-label">Barrière autocall</span><span class="param-value bad">110% (fixe)</span></div>
+      <div class="param-row"><span class="param-label">Fréquence observations</span><span class="param-value warn">Annuelle (5×)</span></div>
+      <div class="param-row"><span class="param-label">Barrière coupon</span><span class="param-value warn">80%</span></div>
+      <div class="param-row"><span class="param-label">Barrière capital</span><span class="param-value bad">70%</span></div>
+      <div class="param-row"><span class="param-label">Coupon annuel</span><span class="param-value good">14%</span></div>
+      <div class="param-row"><span class="param-label">Effet mémoire</span><span class="param-value warn">Oui</span></div>
+      <div class="param-row"><span class="param-label">Protection capital</span><span class="param-value warn">85% (partielle)</span></div>
+      <div class="param-row"><span class="param-label">Sous-jacent</span><span class="param-value">Panier worst-of 3 actifs</span></div>
+      <div class="param-row"><span class="param-label">Horizon</span><span class="param-value">2-3 ans</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SOUS-JACENT ── -->
+<section style="border-top:1px solid var(--border);padding-top:4rem;">
+  <p class="section-tag">// 03 — Choix du sous-jacent</p>
+  <h2>Diversification & Variance</h2>
+  <p>Le choix du sous-jacent est directement lié au profil de risque souhaité. La théorie de la diversification fournit un cadre rigoureux pour ce choix.</p>
+
+  <div class="formula-box">
+    <span class="label">Variance d'un portefeuille non équipondéré</span>
+    σ²p = Σᵢ wᵢ² σᵢ² + Σᵢ Σⱼ≠ᵢ wᵢ wⱼ σᵢ σⱼ ρᵢⱼ = w⊤ Σ w
+  </div>
+
+  <p>Puisque wᵢ ∈ [0,1] et Σwᵢ = 1, on a wᵢ² &lt; wᵢ et wᵢwⱼ &lt; wᵢ — chaque terme est écrasé par sa pondération. Même avec des corrélations positives entre les composants de l'Euro Stoxx 50, la variance de l'indice reste inférieure à la moyenne des variances individuelles grâce à cet effet de dilution.</p>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Sous-jacent</th>
+        <th>Vol indicative</th>
+        <th>Driver macro</th>
+        <th>Usage</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Euro Stoxx 50 Decrement</td>
+        <td class="td-green">~15-18%</td>
+        <td>Cycle économique européen</td>
+        <td class="td-blue">Défensif</td>
+      </tr>
+      <tr>
+        <td>S&P 500</td>
+        <td class="td-green">~13-16%</td>
+        <td>Cycle US, Fed</td>
+        <td class="td-blue">Défensif</td>
+      </tr>
+      <tr>
+        <td>Euro Stoxx Banks</td>
+        <td class="td-gold">~25-30%</td>
+        <td>Taux courts, risque crédit</td>
+        <td class="td-red">Agressif (worst-of)</td>
+      </tr>
+      <tr>
+        <td>Euro Stoxx Technology</td>
+        <td class="td-gold">~28-35%</td>
+        <td>Taux longs, révisions bénéfices</td>
+        <td class="td-red">Agressif (worst-of)</td>
+      </tr>
+      <tr>
+        <td>Euro Stoxx Energy</td>
+        <td class="td-gold">~25-32%</td>
+        <td>Pétrole, géopolitique</td>
+        <td class="td-red">Agressif (worst-of)</td>
+      </tr>
+      <tr>
+        <td>Tesla / Nvidia</td>
+        <td class="td-red">~45-60%</td>
+        <td>IA, cycles semi-conducteurs</td>
+        <td class="td-red">Très agressif</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p>Pour le Phoenix agressif, on choisit des sous-jacents <strong>décorrélés</strong> (Banks / Tech / Energy) car leurs drivers fondamentaux sont orthogonaux. Dans un worst-of, la faible corrélation maximise la dispersion et donc la probabilité que l'un des composants under-performe — c'est ce risque supplémentaire qui permet d'offrir un coupon élevé.</p>
+</section>
+
+<!-- ── SCÉNARIOS ── -->
+<section style="border-top:1px solid var(--border);padding-top:4rem;">
+  <p class="section-tag">// 04 — Scénarios à maturité</p>
+  <h2>Profils de gain & perte</h2>
+
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th>Scénario</th>
+        <th>Niveau sous-jacent</th>
+        <th>Phoenix Défensif</th>
+        <th>Phoenix Agressif</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Rappel anticipé</td>
+        <td>≥ barrière autocall</td>
+        <td class="td-green">Capital + coupons cumulés</td>
+        <td class="td-green">Capital + coupons cumulés</td>
+      </tr>
+      <tr>
+        <td>Non rappelé, au-dessus barrière coupon</td>
+        <td>Entre 70% et barrière autocall</td>
+        <td class="td-blue">Capital + coupons mémoire</td>
+        <td class="td-blue">Capital + coupons versés</td>
+      </tr>
+      <tr>
+        <td>Tunnel — jamais rappelé, sous barrière coupon</td>
+        <td>Entre 60% et 70%</td>
+        <td class="td-gold">Capital seul — zéro coupon</td>
+        <td class="td-gold">Capital 85% — zéro coupon</td>
+      </tr>
+      <tr>
+        <td>Breach barrière capital</td>
+        <td>&lt; 60% (déf.) / &lt; 70% (agr.)</td>
+        <td class="td-red">Perte proportionnelle</td>
+        <td class="td-red">Perte proportionnelle</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="alert">
+    <strong>⚠ Le scénario tunnel</strong> — C'est le pire cas pour l'investisseur : le sous-jacent ne s'effondre pas (pas de perte en capital) mais ne remonte jamais assez haut pour déclencher l'autocall ni verser les coupons. L'investisseur immobilise son capital 5 ans pour un rendement nul. La barrière dégressive du Phoenix défensif réduit significativement ce risque.
+  </div>
+</section>
+
+<!-- ── KPI BACKTEST ── -->
+<section style="border-top:1px solid var(--border);padding-top:4rem;">
+  <p class="section-tag">// 05 — Résultats Monte Carlo</p>
+  <h2>Métriques clés</h2>
+  <p>100 000 simulations Black-Scholes sur 5 ans. Paramètres calibrés sur l'Euro Stoxx 50 historique (2019-2024). σ = 17.8%, r = 3.5%.</p>
+
+  <div class="kpi-grid">
+    <div class="kpi">
+      <span class="kpi-value blue">95.3%</span>
+      <span class="kpi-label">P(rappel) — Défensif</span>
+      <div class="kpi-sub">Durée vie moy. : 0.93 ans</div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-value blue">+4.62%</span>
+      <span class="kpi-label">Rendement moyen — Défensif</span>
+      <div class="kpi-sub">≈ +5%/an annualisé</div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-value red">68.5%</span>
+      <span class="kpi-label">P(rappel) — Agressif</span>
+      <div class="kpi-sub">Durée vie moy. : 2.95 ans</div>
+    </div>
+    <div class="kpi">
+      <span class="kpi-value red">45.1%</span>
+      <span class="kpi-label">P(perte) — Agressif</span>
+      <div class="kpi-sub">Rendement moy. : +12.83%</div>
+    </div>
+  </div>
+
+  <p>Pour voir le backtest complet avec trajectoires, distributions et tableaux détaillés → <a href="backtest.html" style="color:var(--accent);">onglet Backtest</a>.</p>
+</section>
+
+<footer>
+  <span>© 2025 Julien Guebourg</span>
+  <span>À titre illustratif — ne constitue pas un conseil en investissement</span>
+  <a href="index.html" style="color:var(--muted);text-decoration:none;">← Accueil</a>
+</footer>
+
+</body>
+</html>

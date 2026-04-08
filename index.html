@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Julien Guebourg — Structured Products</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #080B10;
+    --surface:  #0D1117;
+    --border:   #1C2333;
+    --text:     #C9D1D9;
+    --muted:    #6E7681;
+    --accent:   #3B82F6;
+    --accent2:  #10B981;
+    --red:      #EF4444;
+    --gold:     #F59E0B;
+    --white:    #F0F6FC;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 300;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ── GRID NOISE BACKGROUND ── */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(59,130,246,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(59,130,246,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 3rem;
+    height: 60px;
+    background: rgba(8,11,16,0.85);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border);
+  }
+  .nav-logo {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.85rem;
+    color: var(--accent);
+    letter-spacing: 0.1em;
+    text-decoration: none;
+  }
+  .nav-links { display: flex; gap: 2rem; list-style: none; }
+  .nav-links a {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 0.08em;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--white); }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    min-height: 100vh;
+    display: flex; flex-direction: column;
+    justify-content: center; align-items: flex-start;
+    padding: 0 3rem;
+    max-width: 900px;
+    margin: 0 auto;
+  }
+  .hero-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.2s;
+  }
+  .hero h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(2.8rem, 6vw, 5rem);
+    color: var(--white);
+    line-height: 1.05;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.4s;
+  }
+  .hero h1 em {
+    font-style: italic;
+    color: var(--accent);
+  }
+  .hero-sub {
+    font-size: 1.05rem;
+    color: var(--muted);
+    max-width: 540px;
+    margin-bottom: 2.5rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.6s;
+  }
+  .hero-cta {
+    display: flex; gap: 1rem;
+    opacity: 0;
+    animation: fadeUp 0.6s ease forwards 0.8s;
+  }
+  .btn {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.08em;
+    padding: 0.75rem 1.6rem;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.2s;
+    cursor: pointer;
+    border: none;
+  }
+  .btn-primary {
+    background: var(--accent);
+    color: #fff;
+  }
+  .btn-primary:hover { background: #2563EB; transform: translateY(-1px); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    background: var(--surface);
+  }
+  .stat-item {
+    padding: 1.8rem 2rem;
+    border-right: 1px solid var(--border);
+  }
+  .stat-item:last-child { border-right: none; }
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    color: var(--white);
+    display: block;
+  }
+  .stat-label {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-top: 0.3rem;
+  }
+
+  /* ── SECTION ── */
+  section {
+    position: relative; z-index: 1;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 6rem 3rem;
+  }
+  .section-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--accent);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+  .section-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+    color: var(--white);
+    margin-bottom: 1rem;
+  }
+  .section-sub {
+    color: var(--muted);
+    font-size: 0.95rem;
+    max-width: 560px;
+    margin-bottom: 3rem;
+  }
+
+  /* ── CARDS ── */
+  .cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5px;
+    background: var(--border);
+    border: 1px solid var(--border);
+  }
+  .card {
+    background: var(--surface);
+    padding: 2rem;
+    text-decoration: none;
+    color: inherit;
+    transition: background 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: var(--accent);
+    transform: scaleX(0);
+    transform-origin: left;
+    transition: transform 0.3s;
+  }
+  .card:hover { background: #111827; }
+  .card:hover::before { transform: scaleX(1); }
+
+  .card-icon {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  .card-title {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.25rem;
+    color: var(--white);
+    margin-bottom: 0.6rem;
+  }
+  .card-desc {
+    font-size: 0.85rem;
+    color: var(--muted);
+    line-height: 1.6;
+    margin-bottom: 1.2rem;
+  }
+  .card-tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  .card-tag-green { color: var(--accent2); }
+  .card-tag-gold  { color: var(--gold); }
+
+  /* ── ABOUT ── */
+  .about-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+    align-items: center;
+  }
+  .about-text p {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin-bottom: 1rem;
+  }
+  .about-text p strong { color: var(--text); font-weight: 500; }
+  .tags { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.5rem; }
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.68rem;
+    padding: 0.3rem 0.8rem;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    letter-spacing: 0.05em;
+  }
+  .about-visual {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 2rem;
+  }
+  .terminal-line {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    line-height: 2;
+    color: var(--muted);
+  }
+  .terminal-line .prompt { color: var(--accent2); }
+  .terminal-line .cmd    { color: var(--white); }
+  .terminal-line .out    { color: var(--accent); }
+  .terminal-line .cmt    { color: var(--muted); }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    border-top: 1px solid var(--border);
+    padding: 2rem 3rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (max-width: 768px) {
+    nav { padding: 0 1.5rem; }
+    .hero, section { padding-left: 1.5rem; padding-right: 1.5rem; }
+    .stats-bar { grid-template-columns: repeat(2,1fr); }
+    .about-grid { grid-template-columns: 1fr; gap: 2rem; }
+    footer { flex-direction: column; gap: 0.5rem; text-align: center; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="nav-logo" href="index.html">JG // STRUCTURED PRODUCTS</a>
+  <ul class="nav-links">
+    <li><a href="phoenix.html">PHOENIX</a></li>
+    <li><a href="athena.html">ATHENA</a></li>
+    <li><a href="pricer.html">PRICER</a></li>
+    <li><a href="backtest.html">BACKTEST</a></li>
+  </ul>
+</nav>
+
+<!-- ── HERO ── -->
+<div class="hero">
+  <p class="hero-tag">// Julien Guebourg — Finance de marché</p>
+  <h1>Produits<br><em>Structurés</em><br>& Pricing</h1>
+  <p class="hero-sub">
+    Analyse, modélisation et pricing de produits structurés à capital conditionnel.
+    Phoenix, Athena, autocalls — simulation Monte Carlo, vol implicite et Greeks.
+  </p>
+  <div class="hero-cta">
+    <a href="phoenix.html" class="btn btn-primary">Explorer les Phoenix</a>
+    <a href="pricer.html"  class="btn btn-ghost">Lancer le Pricer →</a>
+  </div>
+</div>
+
+<!-- ── STATS BAR ── -->
+<div class="stats-bar">
+  <div class="stat-item">
+    <span class="stat-value">100k</span>
+    <span class="stat-label">Simulations Monte Carlo</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">17.8%</span>
+    <span class="stat-label">Vol calibrée Euro Stoxx 50</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">2</span>
+    <span class="stat-label">Produits analysés</span>
+  </div>
+  <div class="stat-item">
+    <span class="stat-value">5 ans</span>
+    <span class="stat-label">Horizon de simulation</span>
+  </div>
+</div>
+
+<!-- ── MODULES ── -->
+<section>
+  <p class="section-tag">// Modules</p>
+  <h2 class="section-title">Outils & Analyses</h2>
+  <p class="section-sub">Chaque module combine théorie financière, implémentation quantitative et visualisation interactive.</p>
+  <div class="cards">
+    <a href="phoenix.html" class="card">
+      <div class="card-icon">◈</div>
+      <div class="card-title">Phoenix</div>
+      <div class="card-desc">Analyse comparative Phoenix défensif vs agressif. Construction, barrières, effet mémoire, worst-of et choix de sous-jacent.</div>
+      <div class="card-tag">Autocall · PDI · Mémoire</div>
+    </a>
+    <a href="athena.html" class="card">
+      <div class="card-icon">◇</div>
+      <div class="card-title">Athena</div>
+      <div class="card-desc">Présentation du mécanisme Athena, différences avec le Phoenix, scénarios à maturité et risque de tunnel.</div>
+      <div class="card-tag card-tag-green">Autocall · ZCB · Capital</div>
+    </a>
+    <a href="pricer.html" class="card">
+      <div class="card-icon">⬡</div>
+      <div class="card-title">Pricer Interactif</div>
+      <div class="card-desc">Pricer Monte Carlo en temps réel dans le navigateur. Paramétrez le produit, lancez la simulation, visualisez les résultats instantanément.</div>
+      <div class="card-tag card-tag-gold">Monte Carlo · Black-Scholes · Live</div>
+    </a>
+    <a href="backtest.html" class="card">
+      <div class="card-icon">▦</div>
+      <div class="card-title">Backtest</div>
+      <div class="card-desc">Backtest comparatif des deux constructions Phoenix sur 100 000 trajectoires simulées. Distribution des rendements, probabilités de rappel, métriques clés.</div>
+      <div class="card-tag">Simulation · Statistiques · Risque</div>
+    </a>
+  </div>
+</section>
+
+<!-- ── ABOUT ── -->
+<section style="border-top: 1px solid var(--border); padding-top: 5rem;">
+  <div class="about-grid">
+    <div class="about-text">
+      <p class="section-tag">// À propos</p>
+      <h2 class="section-title" style="margin-bottom:1.5rem;">Julien<br>Guebourg</h2>
+      <p>Étudiant en finance de marché, spécialisé en <strong>produits dérivés et structurés</strong>. Ce site présente mes travaux de modélisation sur les autocalls Phoenix et Athena.</p>
+      <p>Les analyses combinent <strong>théorie financière rigoureuse</strong> — construction par blocs (ZCB + digitales + PDI), pricing Monte Carlo, calibration de volatilité — et <strong>implémentation quantitative</strong> en Python et JavaScript.</p>
+      <p>Chaque produit est analysé du point de vue de l'investisseur, de l'émetteur et du structureur, avec une attention particulière aux <strong>risques cachés</strong> : dividendes, corrélation, convexité.</p>
+      <div class="tags">
+        <span class="tag">Produits structurés</span>
+        <span class="tag">Monte Carlo</span>
+        <span class="tag">Black-Scholes</span>
+        <span class="tag">Greeks</span>
+        <span class="tag">Vol implicite</span>
+        <span class="tag">Autocall</span>
+        <span class="tag">PDI</span>
+        <span class="tag">Markowitz</span>
+      </div>
+    </div>
+    <div class="about-visual">
+      <div class="terminal-line"><span class="prompt">$</span> <span class="cmd">python pricer.py</span></div>
+      <div class="terminal-line"><span class="cmt"># Phoenix Défensif — Monte Carlo</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">N simulations   : 100,000</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">σ (Euro Stoxx)  : 17.8%</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">P(rappel)       : 95.3%</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">Durée vie moy.  : 0.93 ans</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">Rendement moy.  : +4.62%</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">P(perte)        : 2.5%</span></div>
+      <div class="terminal-line">&nbsp;</div>
+      <div class="terminal-line"><span class="cmt"># Phoenix Agressif</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">P(rappel)       : 68.5%</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">Durée vie moy.  : 2.95 ans</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">Rendement moy.  : +12.83%</span></div>
+      <div class="terminal-line"><span class="prompt">→</span> <span class="out">P(perte)        : 45.1%</span></div>
+      <div class="terminal-line">&nbsp;</div>
+      <div class="terminal-line"><span class="prompt">✓</span> <span class="cmd">Simulation terminée.</span></div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <span>© 2025 Julien Guebourg</span>
+  <span>À titre illustratif — ne constitue pas un conseil en investissement</span>
+  <span>jguebourg.github.io</span>
+</footer>
+
+</body>
+</html>
